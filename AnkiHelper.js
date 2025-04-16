@@ -369,34 +369,37 @@ document.addEventListener('mouseup', e => {
        }
       break;
 case 'x': // Ctrl + Alt + X - Remove annotation
-            e.preventDefault();
-            const sel = window.getSelection();
-            if (sel.rangeCount === 0) return;
-            const range = sel.getRangeAt(0);
-            let node = range.commonAncestorContainer;
+  e.preventDefault();
+  const sel = window.getSelection();
+  if (sel.rangeCount === 0) return;
 
-            // Encontra o elemento de anotação mais próximo
-            let element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
-            while (element && element !== document.body) {
-                if (element.dataset.ankiId) {
-                    const annotationId = parseInt(element.dataset.ankiId, 10);
+  const range = sel.getRangeAt(0);
+  let node = range.commonAncestorContainer;
 
-                    // Remove o elemento do DOM
-                    const parent = element.parentNode;
-                    while (element.firstChild) {
-                        parent.insertBefore(element.firstChild, element);
-                    }
-                    parent.removeChild(element);
+  // Encontra o elemento de anotação mais próximo
+  let element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+  while (element && element !== document.body) {
+    if (element.dataset.ankiId) {
+      const annotationId = parseInt(element.dataset.ankiId, 10);
+      const parent = element.parentNode;
 
-                    // Remove do armazenamento SEM CHAMAR reinsertSavedCards()
-                    annotations = annotations.filter(anno => anno.id !== annotationId);
-                    localStorage.setItem(storageKey, JSON.stringify(annotations));
-                    
-                    break;
-                }
-                element = element.parentElement;
-            }
-            break;
+      // Coleta e limpa o texto interno
+      let rawText = element.textContent;
+      let cleanedText = rawText.replace(/[{}:\\/]|c1/gi, '').trim();
+      cleanedText = ` ${cleanedText} `;
+      // Remove o elemento e reinserta texto limpo
+      const textNode = document.createTextNode(cleanedText);
+      parent.replaceChild(textNode, element);
+
+      // Remove do armazenamento
+      annotations = annotations.filter(anno => anno.id !== annotationId);
+      localStorage.setItem(storageKey, JSON.stringify(annotations));
+      break;
+    }
+    element = element.parentElement;
+  }
+  break;
+
 
 
     }
@@ -422,6 +425,8 @@ case 'x': // Ctrl + Alt + X - Remove annotation
   document.addEventListener('touchstart', e => {
     if (!floatingBtns.contains(e.target)) hideFloatingBtns();
   });
+
+
   // --- REINSERE AS ANOTAÇÕES SALVAS ---
   reinsertSavedCards();
 })();
